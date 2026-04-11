@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "কৃষি AI",
+    "slug": "krishi-ai",
+    "version": "2.1.0",
+    "orientation": "portrait",
+    "scheme": "krishiai",
+    "owner": "moniruzjaman",
+    "userInterfaceStyle": "light",
+    "runtimeVersion": "1.0.0",
+    "icon": "./assets/icons/icon.png",
+    "splash": {
+      "image": "./assets/icons/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A8A1F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "live.krishiai.app",
+      "jsEngine": "jsc"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "backgroundColor": "#0A8A1F"
+      },
+      "package": "live.krishiai.app",
+      "jsEngine": "jsc"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ফসলের ছবি বিশ্লেষণের জন্য ছবি অ্যাক্সেস প্রয়োজন।",
+          "cameraPermission": "ফসলের রোগ সনাক্তের জন্য ক্যামেরা প্রয়োজন।",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "আপনার এলাকার কৃষি পরামর্শের জন্য অবস্থান তথ্য প্রয়োজন।"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "BACKEND_URL": "https://api.krishiai.live/api/v1",
+      "eas": {
+        "projectId": "fc268b55-a3b2-4c1b-8b7b-f5ee611e86fb"
+      }
+    }
+  }
+}
