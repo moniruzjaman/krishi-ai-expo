@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "কৃষি AI",
-    "slug": "krishi-ai",
+    "slug": "krishi-ai-expo",
     "version": "2.1.0",
     "orientation": "portrait",
     "scheme": "krishiai",
-    "owner": "moniruzjaman",
+    "owner": "krishiai",
     "userInterfaceStyle": "light",
     "runtimeVersion": "1.0.0",
     "icon": "./assets/icons/icon.png",
