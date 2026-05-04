@@ -1,0 +1,22 @@
+{
+  "testEnvironment": "node",
+  "preset": "jest-expo",
+  "setupFilesAfterEnv": [
+    "<rootDir>/jest.setup.js"
+  ],
+  "collectCoverageFrom": [
+    "src/**/*.{ts,tsx}",
+    "app/**/*.{ts,tsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**"
+  ],
+  "testMatch": [
+    "**/__tests__/**/*.(test|spec).[jt]s?(x)"
+  ],
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(expo|@react-native|@supabase|react-native-gesture-handler|react-native-reanimated|react-native-screens|react-native-safe-area-context)/)"
+  ]
+}
