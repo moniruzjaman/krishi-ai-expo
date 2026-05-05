@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "কৃষি AI",
-    "slug": "krishi-ai",
+    "slug": "krishi-ai-expo",
     "version": "2.1.0",
     "orientation": "portrait",
     "scheme": "krishiai",
-    "owner": "moniruzjaman",
+    "owner": "krishiai",
     "userInterfaceStyle": "light",
     "runtimeVersion": "1.0.0",
     "icon": "./assets/icons/icon.png",
@@ -25,7 +25,11 @@
         "backgroundColor": "#0A8A1F"
       },
       "package": "live.krishiai.app",
-      "jsEngine": "jsc"
+      "jsEngine": "jsc",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -51,8 +55,9 @@
     "extra": {
       "BACKEND_URL": "https://api.krishiai.live/api/v1",
       "eas": {
-        "projectId": "fc268b55-a3b2-4c1b-8b7b-f5ee611e86fb"
-      }
+        "projectId": "f45bfecc-bb4c-49d0-87ab-f4d18d7148f4"
+      },
+      "router": {}
     }
   }
 }
