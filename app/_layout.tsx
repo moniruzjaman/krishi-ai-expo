@@ -5,6 +5,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { initSentry } from '../src/services/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 // Keep splash screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();

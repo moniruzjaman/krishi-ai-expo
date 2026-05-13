@@ -1,7 +1,12 @@
 import { classifyPlantDisease } from './huggingface';
 
-const getApiKey = (): string =>
-  process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+const getApiKey = (): string => {
+  const key = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  if (!key) {
+    throw new Error('EXPO_PUBLIC_GEMINI_API_KEY is not set. Configure it in your environment.');
+  }
+  return key;
+};
 
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
@@ -23,10 +28,6 @@ const callGemini = async (
   systemInstruction?: string,
 ): Promise<string> => {
   const apiKey = getApiKey();
-
-  if (!apiKey) {
-    throw new Error('EXPO_PUBLIC_GEMINI_API_KEY is not set');
-  }
 
   const body: Record<string, unknown> = {
     contents: messages,
