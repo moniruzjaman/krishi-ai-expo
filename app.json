@@ -53,7 +53,6 @@
       "typedRoutes": true
     },
     "extra": {
-      "BACKEND_URL": "https://api.krishiai.live/api/v1",
       "eas": {
         "projectId": "f45bfecc-bb4c-49d0-87ab-f4d18d7148f4"
       },
