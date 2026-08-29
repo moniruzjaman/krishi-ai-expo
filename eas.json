@@ -9,15 +9,11 @@
       "android": {
         "buildType": "apk"
       },
-      "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://api.krishiai.live/api/v1"
-      }
+      "env": {}
     },
     "production": {
       "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://api.krishiai.live/api/v1"
-      }
+      "env": {}
     }
   }
 }

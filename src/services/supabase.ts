@@ -5,16 +5,14 @@ import Constants from 'expo-constants';
 // ─── Config ───────────────────────────────────────────────────────────────────
 const SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  Constants.expoConfig?.extra?.SUPABASE_URL ||
-  'https://nmngzjrrysjzuxfcklrk.supabase.co';
+  (Constants.expoConfig?.extra as any)?.SUPABASE_URL;
 
 const SUPABASE_ANON_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_KEY ||
-  Constants.expoConfig?.extra?.SUPABASE_ANON_KEY ||
-  '';
+  (Constants.expoConfig?.extra as any)?.SUPABASE_ANON_KEY;
 
 // ─── Client (with AsyncStorage for session persistence) ───────────────────────
-export const supabase = SUPABASE_ANON_KEY
+export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         storage: AsyncStorage,
@@ -24,6 +22,11 @@ export const supabase = SUPABASE_ANON_KEY
       },
     })
   : null;
+
+// Warn if credentials missing in production
+if (!supabase && !__DEV__) {
+  console.warn('Supabase credentials missing. Cloud sync features are disabled.');
+}
 
 // ─── User Profile ─────────────────────────────────────────────────────────────
 export interface UserProfile {

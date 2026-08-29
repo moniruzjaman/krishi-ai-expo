@@ -5,44 +5,31 @@ import * as Sentry from '@sentry/react-native';
  * Usage: Call initSentry() in your app's entry point before rendering
  */
 export const initSentry = () => {
+  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+  if (!dsn) {
+    if (__DEV__) {
+      console.warn('Sentry DSN not configured – error reporting disabled.');
+    }
+    return;
+  }
+
   Sentry.init({
-    // Replace with your actual Sentry DSN
-    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
-    
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
+    dsn,
     tracesSampleRate: 1.0,
-    
-    // Enable debug in development
     debug: __DEV__,
-    
-    // Set environment
     environment: __DEV__ ? 'development' : 'production',
-    
-    // Capture breadcrumbs for better error tracking
     maxBreadcrumbs: 100,
-    
-    // Attach stack traces to all messages
     attachStacktrace: true,
-    
-    // Configure error filtering
     beforeSend: (event, hint) => {
-      // Don't send errors in development unless explicitly set
       if (__DEV__) {
         console.log('Sentry Event:', event);
-        // Optionally return null to not send in development
-        // return null;
       }
       return event;
     },
-    
-    // Ignore certain errors
     ignoreErrors: [
-      // Browser extensions
       'top.GLOBALS',
-      // Random plugins/extensions
       'chrome-extension://',
       'moz-extension://',
-      // Network errors
       'NetworkError',
       'Network error',
       'Non-Error promise rejection captured',

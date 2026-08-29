@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BRAND, MARKET_DATA, SEASONS, WEATHER_DATA } from '../src/constants';
 import { TrendBadge, Button } from '../src/components/UI';
+import { getMarketPrices } from '../src/services/market';
+import { getWeather } from '../src/services/weather';
+import type { LiveWeatherData } from '../src/services/weather';
+import { getCurrentLocation, getLocationName } from '../src/services/location';
+import type { MarketPrice } from '../src/types';
 
 // ── Shared Header ─────────────────────────────────────────────────────────────
 function ScreenHeader({ title, lang, setLang, onBack }: { title: string; lang: 'bn' | 'en'; setLang: (l: 'bn' | 'en') => void; onBack?: () => void }) {
@@ -40,39 +45,99 @@ const sh = StyleSheet.create({
 export function MarketScreen() {
   const insets = useSafeAreaInsets();
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
+  const [prices, setPrices] = useState<MarketPrice[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const t = (bn: string, en: string) => lang === 'bn' ? bn : en;
+
+  const fetchPrices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMarketPrices();
+      setPrices(data);
+    } catch {
+      setError(t('ডেটা লোড হয়নি', 'Could not load data'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchPrices(); }, [fetchPrices]);
+
+  const displayData = prices ?? MARKET_DATA.map((d) => ({
+    commodity: d.name,
+    unit: d.unit,
+    wholesale_price: d.wholesale,
+    retail_price: d.retail,
+    trend: d.trend,
+    change_percent: 0,
+    last_updated: new Date().toISOString(),
+  }));
+
+  const formatTime = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: insets.top }}>
       <ScreenHeader title="market" lang={lang} setLang={setLang} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={{ paddingHorizontal: 16 }}>
-          <Text style={s.title}>💰 {t('বাজার মূল্য', 'Market Prices')}</Text>
-          <Text style={s.subtitle}>{t('আজকের পাইকারি ও খুচরা মূল্য', "Today's wholesale & retail prices")}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={s.title}>💰 {t('বাজার মূল্য', 'Market Prices')}</Text>
+            <TouchableOpacity onPress={fetchPrices} disabled={loading} style={{ padding: 8 }}>
+              <Text style={{ fontSize: 18, color: BRAND.primary }}>{loading ? '⏳' : '🔄'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={s.subtitle}>{t('জাতীয় গড় খুচরা মূল্য', 'National avg. retail prices')}</Text>
         </View>
 
-        <View style={s.table}>
-          <View style={s.tableHead}>
-            <Text style={[s.th, { flex: 2 }]}>{t('পণ্য', 'Item')}</Text>
-            <Text style={[s.th, { textAlign: 'center' }]}>{t('পাইকারি', 'Wholesale')}</Text>
-            <Text style={[s.th, { textAlign: 'center' }]}>{t('খুচরা', 'Retail')}</Text>
-            <Text style={[s.th, { textAlign: 'center' }]}>{t('পরিবর্তন', 'Change')}</Text>
+        {loading && !prices ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={BRAND.primary} />
+            <Text style={{ marginTop: 12, color: '#64748b', fontSize: 13 }}>
+              {t('বাজারদর আপডেট হচ্ছে...', 'Fetching market prices...')}
+            </Text>
           </View>
-          {MARKET_DATA.map((item, i) => (
-            <View key={item.name} style={[s.tableRow, i % 2 === 1 && { backgroundColor: '#f8fafc' }]}>
-              <View style={{ flex: 2 }}>
-                <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={s.itemUnit}>{item.unit}</Text>
+        ) : error && !prices ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>⚠️</Text>
+            <Text style={{ color: '#dc2626', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>{error}</Text>
+            <Button title={t('পুনরায় চেষ্টা', 'Retry')} onPress={fetchPrices} />
+          </View>
+        ) : (
+          <>
+            <View style={s.table}>
+              <View style={s.tableHead}>
+                <Text style={[s.th, { flex: 2 }]}>{t('পণ্য', 'Item')}</Text>
+                <Text style={[s.th, { textAlign: 'center' }]}>{t('পাইকারি', 'Wholesale')}</Text>
+                <Text style={[s.th, { textAlign: 'center' }]}>{t('খুচরা', 'Retail')}</Text>
+                <Text style={[s.th, { textAlign: 'center' }]}>{t('পরিবর্তন', 'Change')}</Text>
               </View>
-              <Text style={[s.td, { textAlign: 'center', color: '#475569' }]}>৳{item.wholesale}</Text>
-              <Text style={[s.td, { textAlign: 'center', fontWeight: '800', color: '#0f172a' }]}>৳{item.retail}</Text>
-              <View style={{ alignItems: 'center' }}>
-                <TrendBadge trend={item.trend} change={item.change} />
-              </View>
+              {displayData.map((item, i) => (
+                <View key={item.commodity ?? i} style={[s.tableRow, i % 2 === 1 && { backgroundColor: '#f8fafc' }]}>
+                  <View style={{ flex: 2 }}>
+                    <Text style={s.itemName} numberOfLines={1}>{item.commodity}</Text>
+                    <Text style={s.itemUnit}>{item.unit}</Text>
+                  </View>
+                  <Text style={[s.td, { textAlign: 'center', color: '#475569' }]}>৳{item.wholesale_price}</Text>
+                  <Text style={[s.td, { textAlign: 'center', fontWeight: '800', color: '#0f172a' }]}>৳{item.retail_price}</Text>
+                  <View style={{ alignItems: 'center' }}>
+                    <TrendBadge trend={item.trend} change={item.trend === 'up' ? '↑' : item.trend === 'down' ? '↓' : '–'} />
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-        <Text style={s.source}>{t('উৎস: DAM বাংলাদেশ | আজ আপডেট', 'Source: DAM Bangladesh | Updated Today')}</Text>
+            <Text style={s.source}>
+              {prices
+                ? t(`উৎস: DAM বাংলাদেশ | ${formatTime(prices[0]?.last_updated ?? '')}`, `Source: DAM Bangladesh | ${formatTime(prices[0]?.last_updated ?? '')}`)
+                : t('উৎস: DAM বাংলাদেশ | আজ', 'Source: DAM Bangladesh | Today')}
+            </Text>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -82,52 +147,106 @@ export function MarketScreen() {
 export function WeatherScreen() {
   const insets = useSafeAreaInsets();
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
+  const [weather, setWeather] = useState<LiveWeatherData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const t = (bn: string, en: string) => lang === 'bn' ? bn : en;
+
+  const fetchWeatherData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const coords = await getCurrentLocation();
+      const data = await getWeather(coords.latitude, coords.longitude);
+      const locName = await getLocationName(coords.latitude, coords.longitude);
+      setWeather({ ...data, location: locName });
+    } catch {
+      setError(t('আবহাওয়া ডেটা লোড হয়নি', 'Could not load weather'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchWeatherData(); }, [fetchWeatherData]);
+
+  const w = weather ?? {
+    location: WEATHER_DATA.location,
+    temp: WEATHER_DATA.temp,
+    humidity: WEATHER_DATA.humidity,
+    wind: WEATHER_DATA.wind,
+    condition: WEATHER_DATA.condition,
+    conditionEn: WEATHER_DATA.conditionEn,
+    icon: WEATHER_DATA.icon,
+    forecast: WEATHER_DATA.forecast.map((d: any) => ({ day: d.day, icon: d.icon, high: d.high, low: d.low })),
+    advisory: WEATHER_DATA.advisory,
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: insets.top }}>
       <ScreenHeader title="weather" lang={lang} setLang={setLang} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
-        <Text style={s.title}>⛅ {t('কৃষি আবহাওয়া', 'Agri Weather')}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={s.title}>⛅ {t('কৃষি আবহাওয়া', 'Agri Weather')}</Text>
+          <TouchableOpacity onPress={fetchWeatherData} disabled={loading} style={{ padding: 8 }}>
+            <Text style={{ fontSize: 18, color: BRAND.primary }}>{loading ? '⏳' : '🔄'}</Text>
+          </TouchableOpacity>
+        </View>
 
-        <LinearGradient colors={['#1d4ed8', '#2563eb']} style={s.weatherHero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={{ color: '#bfdbfe', fontSize: 12, marginBottom: 4 }}>{WEATHER_DATA.location}</Text>
-              <Text style={{ color: '#fff', fontSize: 48, fontWeight: '900' }}>{WEATHER_DATA.temp}°</Text>
-              <Text style={{ color: '#93c5fd', fontSize: 14 }}>{t(WEATHER_DATA.condition, WEATHER_DATA.conditionEn)}</Text>
-            </View>
-            <Text style={{ fontSize: 72 }}>{WEATHER_DATA.icon}</Text>
+        {loading && !weather ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={BRAND.primary} />
+            <Text style={{ marginTop: 12, color: '#64748b', fontSize: 13 }}>
+              {t('আবহাওয়া আপডেট হচ্ছে...', 'Fetching weather...')}
+            </Text>
           </View>
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-            {[['💧', `${WEATHER_DATA.humidity}%`, t('আর্দ্রতা', 'Humidity')], ['💨', `${WEATHER_DATA.wind} km/h`, t('বায়ু', 'Wind')]].map(([icon, val, label]) => (
-              <View key={label as string} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: 12 }}>
-                <Text style={{ fontSize: 20 }}>{icon as string}</Text>
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>{val as string}</Text>
-                <Text style={{ color: '#bfdbfe', fontSize: 11 }}>{label as string}</Text>
+        ) : error && !weather ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>⚠️</Text>
+            <Text style={{ color: '#dc2626', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>{error}</Text>
+            <Button title={t('পুনরায় চেষ্টা', 'Retry')} onPress={fetchWeatherData} />
+          </View>
+        ) : (
+          <>
+            <LinearGradient colors={['#1d4ed8', '#2563eb']} style={s.weatherHero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ color: '#bfdbfe', fontSize: 12, marginBottom: 4 }}>{w.location}</Text>
+                  <Text style={{ color: '#fff', fontSize: 48, fontWeight: '900' }}>{w.temp}°</Text>
+                  <Text style={{ color: '#93c5fd', fontSize: 14 }}>{t(w.condition, w.conditionEn)}</Text>
+                </View>
+                <Text style={{ fontSize: 72 }}>{w.icon}</Text>
               </View>
-            ))}
-          </View>
-        </LinearGradient>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                {[['💧', `${w.humidity}%`, t('আর্দ্রতা', 'Humidity')], ['💨', `${w.wind} km/h`, t('বায়ু', 'Wind')]].map(([icon, val, label]) => (
+                  <View key={label as string} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: 12 }}>
+                    <Text style={{ fontSize: 20 }}>{icon as string}</Text>
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>{val as string}</Text>
+                    <Text style={{ color: '#bfdbfe', fontSize: 11 }}>{label as string}</Text>
+                  </View>
+                ))}
+              </View>
+            </LinearGradient>
 
-        {/* Forecast */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>{t('৫ দিনের পূর্বাভাস', '5-Day Forecast')}</Text>
-          {WEATHER_DATA.forecast.map((day) => (
-            <View key={day.day} style={s.forecastRow}>
-              <Text style={s.forecastDay}>{day.day}</Text>
-              <Text style={s.forecastIcon}>{day.icon}</Text>
-              <Text style={s.forecastHigh}>{day.high}°</Text>
-              <Text style={s.forecastLow}>{day.low}°</Text>
+            {/* Forecast */}
+            <View style={s.card}>
+              <Text style={s.cardTitle}>{t('৫ দিনের পূর্বাভাস', '5-Day Forecast')}</Text>
+              {w.forecast.map((day, i) => (
+                <View key={day.day + i} style={s.forecastRow}>
+                  <Text style={s.forecastDay}>{day.day}</Text>
+                  <Text style={s.forecastIcon}>{day.icon}</Text>
+                  <Text style={s.forecastHigh}>{day.high}°</Text>
+                  <Text style={s.forecastLow}>{day.low}°</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
 
-        {/* Advisory */}
-        <View style={[s.card, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
-          <Text style={[s.cardTitle, { color: '#92400e' }]}>⚠️ {t('কৃষি পরামর্শ', 'Advisory')}</Text>
-          <Text style={{ fontSize: 14, color: '#b45309', lineHeight: 22 }}>{WEATHER_DATA.advisory}</Text>
-        </View>
+            {/* Advisory */}
+            <View style={[s.card, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+              <Text style={[s.cardTitle, { color: '#92400e' }]}>⚠️ {t('কৃষি পরামর্শ', 'Advisory')}</Text>
+              <Text style={{ fontSize: 14, color: '#b45309', lineHeight: 22 }}>{w.advisory}</Text>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
