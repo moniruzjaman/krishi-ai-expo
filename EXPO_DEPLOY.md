@@ -1,9 +1,9 @@
 # 📱 Krishi AI – Expo Go Publishing Guide
 
 ## What this project uses
-- **Expo SDK 53** (managed workflow)
-- **Expo Router v4** (file-based navigation)
-- **React Native 0.76** (new architecture enabled)
+- **Expo SDK 54** (managed workflow)
+- **Expo Router v6** (file-based navigation)
+- **React Native 0.81.5** (new architecture enabled)
 - Targeted for **Expo Go** (no custom native modules)
 
 ---
